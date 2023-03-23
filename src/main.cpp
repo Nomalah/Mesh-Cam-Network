@@ -1,22 +1,10 @@
 #include <painlessMesh.h>
+#include "main.h"
 
-#define   MESH_PREFIX     "whateverYouLike"
-#define   MESH_PASSWORD   "somethingSneaky"
-#define   MESH_PORT       5555
-
-Scheduler userScheduler; // to control your personal task
-painlessMesh  mesh;
-
-// User stub
-void sendMessage() ; // Prototype so PlatformIO doesn't complain
-
-Task taskSendMessage( TASK_SECOND * 1 , TASK_FOREVER, &sendMessage );
-
-void sendMessage() {
-  String msg = "Hi from node1";
-  msg += mesh.getNodeId();
-  mesh.sendBroadcast( msg );
-  taskSendMessage.setInterval( random( TASK_SECOND * 1, TASK_SECOND * 5 ));
+// Prep Global Variables
+namespace globals {
+    Scheduler user_scheduler; // to control your personal task
+    painlessMesh mesh;
 }
 
 // Needed for painless library
@@ -28,31 +16,18 @@ void newConnectionCallback(uint32_t nodeId) {
     Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
 }
 
-void changedConnectionCallback() {
-  Serial.printf("Changed connections\n");
-}
-
-void nodeTimeAdjustedCallback(int32_t offset) {
-    Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(),offset);
-}
-
 void setup() {
   Serial.begin(115200);
 
 //mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE ); // all types on
-  mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
+  globals::mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
 
-  mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT );
-  mesh.onReceive(&receivedCallback);
-  mesh.onNewConnection(&newConnectionCallback);
-  mesh.onChangedConnections(&changedConnectionCallback);
-  mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
-
-  userScheduler.addTask( taskSendMessage );
-  taskSendMessage.enable();
+  globals::mesh.init(MESH_PREFIX, MESH_PASSWORD, &globals::user_scheduler, MESH_PORT );
+  globals::mesh.onReceive(&receivedCallback);
+  globals::mesh.onNewConnection(&newConnectionCallback);
 }
 
 void loop() {
   // it will run the user scheduler as well
-  mesh.update();
+  globals::mesh.update();
 }
